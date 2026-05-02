@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0f172a" />
+<title>Voorraad → Bestellijst · Zusje Keuken</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: { sans: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'] },
+      },
+    },
+  };
+</script>
+<style>
+  html, body { -webkit-text-size-adjust: 100%; }
+  body { overscroll-behavior-y: contain; }
+  /* Hide number input arrows on mobile to keep tap targets large */
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type=number] { -moz-appearance: textfield; }
+  .chip-active { background-color: #0f172a; color: white; }
+  .dark .chip-active { background-color: #f1f5f9; color: #0f172a; }
+  /* Smooth scroll for chip nav */
+  html { scroll-behavior: smooth; scroll-padding-top: 9.5rem; }
+  /* Sticky safe area for bottom bar on iOS */
+  .pb-safe { padding-bottom: calc(env(safe-area-inset-bottom, 0) + 0.75rem); }
+</style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 font-sans antialiased">
+
+<!-- ============================ HEADER ============================ -->
+<header class="sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-slate-200 dark:border-slate-800">
+  <div class="max-w-5xl mx-auto px-3 py-2.5 flex items-center gap-2">
+    <h1 class="text-base font-semibold tracking-tight flex-1 truncate">
+      Voorraad → Bestellijst
+      <span class="hidden sm:inline text-slate-400 font-normal">· Zusje Keuken</span>
+    </h1>
+    <div id="counters" class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block tabular-nums"></div>
+    <button id="dark-toggle" aria-label="Donker thema" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300">
+      <svg class="w-5 h-5 dark:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg class="w-5 h-5 hidden dark:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <button id="menu-btn" aria-label="Menu" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+    </button>
+  </div>
+
+  <!-- Search -->
+  <div class="max-w-5xl mx-auto px-3 pb-2">
+    <div class="relative">
+      <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input id="search" type="search" inputmode="search" placeholder="Zoek op naam of artikelnummer…"
+        class="w-full pl-9 pr-9 py-2 text-sm rounded-lg bg-slate-100 dark:bg-slate-800 border border-transparent focus:bg-white dark:focus:bg-slate-900 focus:border-slate-300 dark:focus:border-slate-700 focus:outline-none placeholder:text-slate-400" />
+      <button id="search-clear" aria-label="Zoekopdracht wissen" class="hidden absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Category chip nav -->
+  <nav id="chip-nav" class="max-w-5xl mx-auto px-3 pb-2 flex gap-1.5 overflow-x-auto whitespace-nowrap scrollbar-thin"></nav>
+</header>
+
+<!-- Mobile counters (visible below sm) -->
+<div id="counters-mobile" class="sm:hidden max-w-5xl mx-auto px-3 pt-2 text-xs text-slate-500 dark:text-slate-400 tabular-nums"></div>
+
+<!-- ============================ MAIN ============================ -->
+<main id="main" class="max-w-5xl mx-auto px-3 pt-3 pb-32"></main>
+
+<!-- ============================ BOTTOM BAR ============================ -->
+<div class="fixed bottom-0 inset-x-0 z-30 border-t border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur pb-safe">
+  <div class="max-w-5xl mx-auto px-3 pt-3 flex items-center gap-2">
+    <div class="flex-1 text-sm">
+      <div class="font-semibold tabular-nums" id="order-summary-line">0 producten te bestellen</div>
+      <div class="text-xs text-slate-500 dark:text-slate-400 tabular-nums" id="order-summary-detail">— totaal 0 verpakkingen</div>
+    </div>
+    <button id="show-order-btn" class="px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-medium text-sm shadow-sm disabled:opacity-50">
+      Toon bestelling
+    </button>
+  </div>
+</div>
+
+<!-- ============================ ORDER MODAL ============================ -->
+<div id="order-modal" class="hidden fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center">
+  <div class="bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-2xl max-h-[92vh] flex flex-col shadow-xl">
+    <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
+      <h2 class="font-semibold flex-1">Bestelling</h2>
+      <button id="copy-tsv-btn" class="px-3 py-1.5 text-xs rounded-md bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 font-medium">Kopieer TSV</button>
+      <button id="copy-csv-btn" class="px-3 py-1.5 text-xs rounded-md bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-medium">CSV</button>
+      <button id="close-modal-btn" aria-label="Sluiten" class="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div id="order-list" class="flex-1 overflow-y-auto px-4 py-3 text-sm"></div>
+    <div id="copy-toast" class="hidden mx-4 mb-3 px-3 py-2 text-xs rounded-md bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200"></div>
+  </div>
+</div>
+
+<!-- ============================ MENU SHEET ============================ -->
+<div id="menu-sheet" class="hidden fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center" data-close-on-bg>
+  <div class="bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-xl">
+    <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center">
+      <h2 class="font-semibold flex-1">Beheer</h2>
+      <button data-close-menu class="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="p-2 grid gap-1">
+      <button id="reset-stock-btn" class="text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+        <div class="font-medium">Reset alle voorraad</div>
+        <div class="text-xs text-slate-500 dark:text-slate-400">Maakt elk &ldquo;Voorraad nu&rdquo; veld leeg</div>
+      </button>
+      <button id="reset-streef-btn" class="text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+        <div class="font-medium">Reset streefvoorraden</div>
+        <div class="text-xs text-slate-500 dark:text-slate-400">Zet alle par levels op 0</div>
+      </button>
+      <div class="h-px bg-slate-200 dark:bg-slate-800 my-1"></div>
+      <button id="export-streef-btn" class="text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+        <div class="font-medium">Streefvoorraden exporteren (JSON)</div>
+        <div class="text-xs text-slate-500 dark:text-slate-400">Download als back-up</div>
+      </button>
+      <label class="text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer block">
+        <div class="font-medium">Streefvoorraden importeren (JSON)</div>
+        <div class="text-xs text-slate-500 dark:text-slate-400">Vervangt huidige par levels</div>
+        <input id="import-streef-input" type="file" accept="application/json,.json" class="hidden">
+      </label>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ DATA + LOGIC ============================ -->
+<script>
+"use strict";
+
+/* ---------- DATA (volgorde = inOne-bestellijst, niet sorteren) ---------- */
+const DATA = {
+  categories: [
+    {
+      name: "DKW keuken",
+      products: [
+        { title: "Vleesjus glutenvrij - Knorr", unit: "Bus (1,43kg)", id: "098842_BS", price: "€ 39,53" },
+        { title: "Pittenmix sal.verrij - Bravour Essentials", unit: "Zak (700gr)", id: "162138_ZK", price: "€ 8,56" },
+        { title: "Uien gebakken - Koh Pen", unit: "Zak (400gr)", id: "401180_ZK", price: "€ 2,09" },
+        { title: "Bastogne - LU", unit: "Pak (260gr)", id: "069039_PK", price: "€ 2,21" },
+        { title: "Mokka bonen puur - Delinuts", unit: "Doos (3kg)", id: "139467_DS", price: "€ 60,93" },
+        { title: "Schenkstroop origin - Van Gilse", unit: "Fles (600gr)", id: "077322_FL", price: "€ 2,02" },
+        { title: "Augurkenblokjes - Bravour Essentials", unit: "Tray (2 x 2400ml)", id: "423930_TR", price: "€ 10,41" },
+        { title: "Kristalsuiker wit - Bravour Essentials", unit: "Krimp (10 x 1kg)", id: "117401_KI", price: "€ 10,13" },
+        { title: "Rietsuiker - Wester", unit: "Pak (750gr)", id: "035039_PK", price: "€ 1,78" },
+        { title: "Poedersuiker strooib - Van Gilse", unit: "Bus (250gr)", id: "007127_BS", price: "€ 1,11" },
+        { title: "Kletskoppen - Banket Gilde", unit: "Doos (11 x 175gr)", id: "171585_DS", price: "€ 19,02" },
+        { title: "Quichebodems bl.deeg - Pidy", unit: "Doos (72st)", id: "383450_DS", price: "€ 29,87" },
+        { title: "Siroop prof. cafe - Monin", unit: "Fles (700ml)", id: "510150_FL", price: "€ 8,98" },
+        { title: "Knakworst rund - g'woon", unit: "Tray (12 x 400gr)", id: "164177_TR", price: "€ 38,29" },
+        { title: "Witte kookwijn bib - Cuisine Wine", unit: "Doos (5lt)", id: "158652_DS", price: "€ 10,01" },
+        { title: "Bakspray - Dr. Oetker professional", unit: "Bus (600ml)", id: "129545_BS", price: "€ 3,98" },
+        { title: "Crumble groene kruid - Jorda", unit: "Pot (400gr)", id: "147187_PT", price: "€ 14,53" },
+        { title: "Kaneel gemalen - Apollo", unit: "Zak (1kg)", id: "398810_ZK", price: "€ 13,44" },
+        { title: "Pappadums 21cm - Zainab", unit: "Doos (10 x 130gr)", id: "144394_DS", price: "€ 0,00" },
+        { title: "Peper wit heel - Apollo", unit: "Bus (500gr)", id: "412490_BS", price: "€ 14,88" },
+        { title: "Zeezout fijn jodium - Cis Gemma di Ma", unit: "Krimp (12 x 1kg)", id: "085943_KI", price: "€ 5,34" },
+        { title: "Sesamzaad wit - Kuki Sangyo", unit: "Zak (1kg)", id: "143909_ZK", price: "€ 13,65" },
+        { title: "Tortilla chips rond - La Comida", unit: "Zak (450gr)", id: "165223_ZK", price: "€ 2,69" },
+        { title: "Appelmoes - Bravour Essentials", unit: "Tray (12 x 360gr)", id: "003075_TR", price: "€ 10,63" },
+        { title: "Escargots kruiden - Apollo", unit: "Bus (280gr)", id: "146361_BS", price: "€ 5,20" },
+        { title: "Kruidenmix tex mex - Verstegen", unit: "Bus (400gr)", id: "074504_BS", price: "€ 7,95" },
+        { title: "Siroop prof. limoen - Monin", unit: "Fles (700ml)", id: "510560_FL", price: "€ 8,55" },
+        { title: "Kentang s.g. - De Indische", unit: "Zak (1kg)", id: "468480_ZK", price: "€ 13,16" },
+        { title: "Rice crispies - Jorda", unit: "Zak (1kg)", id: "072888_ZK", price: "€ 14,24" },
+        { title: "Sesamzaad wasabi - Foreway", unit: "Bus (100gr)", id: "104774_BS", price: "€ 0,00" },
+        { title: "Primerba tuinkruiden - Knorr", unit: "Pot (340gr)", id: "249360_PT", price: "€ 11,55" },
+        { title: "Toffee-caramel toppi - NIC", unit: "Fles (500cc)", id: "384930_FL", price: "€ 4,65" },
+        { title: "Groentechips - Snaqs", unit: "Doos (8 x 150gr)", id: "159011_DS", price: "€ 15,20" },
+        { title: "Kruiden vis sbf - Zusje", unit: "Bus (700gr)", id: "150236_BS", price: "€ 14,14" },
+        { title: "Esdoornsiroop - Jeffersons", unit: "Fles (1ltr)", id: "141093_FL", price: "€ 15,72" },
+        { title: "Schildje zusje - Zusje", unit: "Doosje (2,05kg)", id: "153376_DJ", price: "€ 77,20" },
+        { title: "Tonijn in water msc - Bravour Essentials", unit: "Tray (12 x 185gr)", id: "037874_TR", price: "€ 17,14" },
+        { title: "Meringues traditione - Didess", unit: "Emmer (250gr)", id: "068429_EM", price: "€ 9,37" },
+        { title: "Siroop prof. passiev - Monin", unit: "Fles (700ml)", id: "510140_FL", price: "€ 9,11" },
+        { title: "Boerencake - g'woon", unit: "Pak (450gr)", id: "167008_PK", price: "€ 1,91" },
+        { title: "Bruschetta rosso - Verstegen", unit: "Bus (315gr)", id: "156953_BS", price: "€ 18,78" },
+        { title: "Kroepoek cassave ong - Lucullus", unit: "Zak (kg)", id: "079385_ZK", price: "€ 0,00" },
+        { title: "Cranberry compote - Valenzi", unit: "Pot (395gr)", id: "130632_PT", price: "€ 2,39" },
+        { title: "American mosterd - Smoky Mountains", unit: "Fles (550gr)", id: "001342_FL", price: "€ 0,00" },
+        { title: "Hollandaise saus k&k - Knorr Professional Garde d'Or", unit: "Pak (1lt)", id: "161672_PK", price: "€ 7,27" },
+        { title: "Aardappelzetmeel - Soubry", unit: "Pak (200gr)", id: "093024_PK", price: "€ 0,73" },
+        { title: "Truffeltapenade 3% - Tartuforo", unit: "Pot (500gr)", id: "206250_PT", price: "€ 9,84" },
+        { title: "Chips naturel - Lay's", unit: "Doos (8 x 175gr)", id: "010368_DS", price: "€ 0,00" },
+        { title: "Kapperappeltjes m.st - Bravour Essentials", unit: "Pot (700gr)", id: "021913_PT", price: "€ 4,39" },
+        { title: "Koekkruimels vanille - Oreo", unit: "Zak (400gr)", id: "057304_ZK", price: "€ 4,32" },
+        { title: "Cornichons - Bravour Essentials", unit: "Pot (2400ml)", id: "062481_PT", price: "€ 9,62" },
+        { title: "Amsterdamse uienrel. - Apollo", unit: "Fles (710ml)", id: "172676_FL", price: "€ 0,00" },
+        { title: "Zoute caramel parels - NIC", unit: "Zak (1kg)", id: "087202_ZK", price: "€ 11,02" },
+        { title: "Red fruit crumble - Jorda", unit: "Pot (650gr)", id: "087320_PT", price: "€ 18,12" },
+        { title: "Augurken zoet - Smoky Mountains", unit: "Can (2,1kg)", id: "099737_CN", price: "€ 0,00" },
+        { title: "Wasabi noriten - Maruka", unit: "Zak (280gr)", id: "119052_ZK", price: "€ 9,54" },
+        { title: "Gembersiroop - Bravour Essentials", unit: "Fles (1lt)", id: "101619_FL", price: "€ 5,49" },
+        { title: "Pinda krokant - Bravour Essentials", unit: "Box (1350gr)", id: "119078_BX", price: "€ 8,19" },
+        { title: "Picos gourmet veg. - Sobremesa", unit: "Zak (130gr)", id: "158948_ZK", price: "€ 1,17" },
+        { title: "Za'atar kruidenmix - Med Cuisine", unit: "Bus (500gr)", id: "162335_BS", price: "€ 5,13" },
+        { title: "Pro espuma warm - Sosa", unit: "Bus (500gr)", id: "163792_BS", price: "€ 25,66" },
+        { title: "Vijgen jam - Don Gastronom", unit: "Pot (1kg)", id: "164621_PT", price: "€ 6,83" },
+        { title: "Bacon jam - Smoky Mountains", unit: "Pot (1,3kg)", id: "168102_PT", price: "€ 24,31" },
+        { title: "Pindakaas - P.C.D.", unit: "Pot (350gr)", id: "153337_PT", price: "€ 1,92" }
+      ]
+    },
+    {
+      name: "Saus olie dressing",
+      products: [
+        { title: "Frituurolie gold - Bravour Essentials", unit: "Box (15lt)", id: "204240_BX", price: "€ 27,67" },
+        { title: "Zonnebloemolie - Bravour Essentials", unit: "Can (5ltr)", id: "130958_CN", price: "€ 9,59" },
+        { title: "Zonnebloem olijfolie - Bravour Essentials", unit: "Fles (5lt)", id: "117030_FL", price: "€ 0,00" },
+        { title: "Mayonaise - Bravour Essentials", unit: "Emmer (10lt)", id: "116100_EM", price: "€ 22,04" },
+        { title: "Tomaten ketchup - Heinz", unit: "Fles (875ml)", id: "147665_FL", price: "€ 3,45" },
+        { title: "Dressing balsamico - Wijko", unit: "Fles (1lt)", id: "397360_FL", price: "€ 10,13" },
+        { title: "World grill french g - Verstegen", unit: "Can (2.5lt)", id: "064310_CN", price: "€ 0,00" },
+        { title: "Cheddar cheese sauce - Pinata", unit: "Blik (3kg)", id: "102166_BL", price: "€ 16,69" },
+        { title: "Chilisaus thais petf - Lucullus", unit: "Fles (1lt)", id: "071642_FL", price: "€ 2,75" },
+        { title: "Satesaus k&k - Bravour Essentials", unit: "Emmer (2,5kg)", id: "290550_EM", price: "€ 7,92" },
+        { title: "Hoi sin sauce - Lee Kum Kee", unit: "Pot (397gr)", id: "044220_PT", price: "€ 2,18" },
+        { title: "Dressing citrus vina - Hellmann's", unit: "Fles (1lt)", id: "305051_FL", price: "€ 12,17" }
+      ]
+    },
+    {
+      name: "Koeling AGF",
+      products: [
+        { title: "Appel blok 1 cm - Heerkens", unit: "Bak (1kg)", id: "171707_BB", price: "€ 4,81" },
+        { title: "Bosui 0,3 cm - Heerkens", unit: "Bak (250gr)", id: "171708_BB", price: "€ 2,90" },
+        { title: "Citroen - Heerkens", unit: "Stuk (1st)", id: "171702_ST", price: "€ 0,30" },
+        { title: "Limoen - Heerkens", unit: "Stuk (1st)", id: "171704_ST", price: "€ 0,30" },
+        { title: "Munt - Heerkens", unit: "Bosje (80gr)", id: "171703_BJ", price: "€ 1,80" },
+        { title: "Peterselie gehakt - Heerkens", unit: "Zak (250gr)", id: "171726_ZK", price: "€ 3,53" },
+        { title: "Rozemarijn - Heerkens", unit: "Bosje (80gr)", id: "171698_BJ", price: "€ 1,72" },
+        { title: "Sinaasappelsap - Fruity King", unit: "Can (2ltr)", id: "139310_CN", price: "€ 5,63" },
+        { title: "Sinaasappel pers - Heerkens", unit: "Stuk (1st)", id: "171725_ST", price: "€ 0,33" },
+        { title: "Komkommer grof stift - Heerkens", unit: "Bak (1kg)", id: "171716_BB", price: "€ 4,18" },
+        { title: "Slamix rucola/frisee - Heerkens", unit: "Zak (250gr)", id: "171727_ZK", price: "€ 3,34" },
+        { title: "Atjar tjampoer - Heerkens", unit: "Emmer (6,7lt)", id: "171717_EM", price: "€ 20,26" },
+        { title: "Zuurkool - Heerkens", unit: "Zakje (500gr)", id: "171705_ZJ", price: "€ 1,17" },
+        { title: "Sup.crunch fresh 11m - Aviko", unit: "Doos (2 x 4,5kg)", id: "088646_DS", price: "€ 0,00" },
+        { title: "Kervel - Heerkens", unit: "Bosje (80gr)", id: "171697_BJ", price: "€ 1,99" },
+        { title: "Bieslook - Heerkens", unit: "Bosje (80gr)", id: "171701_BJ", price: "€ 2,38" },
+        { title: "Tuinkers - Heerkens", unit: "Bakje (1be)", id: "171706_BE", price: "€ 1,09" },
+        { title: "Salie - Heerkens", unit: "Bosje (80gr)", id: "171709_BJ", price: "€ 1,80" },
+        { title: "Ananas sous vide geg - Heerkens", unit: "Zak (600gr)", id: "171712_ZK", price: "€ 11,47" },
+        { title: "Rode bessen - Heerkens", unit: "Bakje (150gr)", id: "171713_BE", price: "€ 3,27" },
+        { title: "Rode koolscheuten - Heerkens", unit: "Bakje (50gr)", id: "171714_BE", price: "€ 1,67" },
+        { title: "Gratinrollen - Peka", unit: "Pak (2st)", id: "171715_PK", price: "€ 8,07" },
+        { title: "Bundelzwam wit - Heerkens", unit: "Bakje (150gr)", id: "171719_BE", price: "€ 1,42" },
+        { title: "Knolselderijpuree - Heerkens", unit: "Zak (1kg)", id: "171721_ZK", price: "€ 9,78" },
+        { title: "Bospeen geschild - Heerkens", unit: "Zak (600gr)", id: "171722_ZK", price: "€ 4,94" },
+        { title: "Cherrytom. aan tros - Heerkens", unit: "Doos (3kg)", id: "171723_DS", price: "€ 22,11" },
+        { title: "Paksoi 1 cm - Heerkens", unit: "Zak (1kg)", id: "171724_ZK", price: "€ 5,07" },
+        { title: "Little gem sla - Heerkens", unit: "Pak (6st)", id: "171729_PK", price: "€ 3,53" },
+        { title: "Pepers rood 0,3 cm - Heerkens", unit: "Zak (250gr)", id: "171728_ZK", price: "€ 5,07" }
+      ]
+    },
+    {
+      name: "Koeling vlees",
+      products: [
+        { title: "Serranoham gesneden - Sobremesa", unit: "Pak (1kg)", id: "114823_PK", price: "€ 20,65" },
+        { title: "Runder pepersteak - Meatstreet", unit: "portie van 1.000 gr", id: "132214_ZK", price: "€ 25,80" },
+        { title: "Runderhaasblokjes - Meatstreet", unit: "portie van 1.000 gr", id: "124888_ZK", price: "€ 24,61" },
+        { title: "Runderstooflapjes - Meatstreet Premium", unit: "Zak (10x80gr)", id: "103095_ZK", price: "€ 16,56" },
+        { title: "Varkenshaasmedaillon - Meatstreet Premium", unit: "portie van 1.000 gr", id: "139264_ZK", price: "€ 14,03" },
+        { title: "Oosters buikspek sv - Meatstreet", unit: "portie van 1.000 gr", id: "133822_ZK", price: "€ 13,42" },
+        { title: "Streaky bacon 60% - Bravour Essentials", unit: "Bak (1kg)", id: "153651_BB", price: "€ 18,52" },
+        { title: "Boneless shortrib sv - Zusje", unit: "Krat (8kg)", id: "170079_KR", price: "€ 147,17" },
+        { title: "Iberico ribfingers - Stoop Premium Meat", unit: "Krat (8kg)", id: "169493_KR", price: "€ 137,79" },
+        { title: "Kip hotdog texas - Jordy's Keuken", unit: "Pak (10x50gr)", id: "162518_PK", price: "€ 6,63" },
+        { title: "Fuet naturel - Sobremesa", unit: "Stuk (150gr)", id: "109278_ST", price: "€ 2,11" },
+        { title: "R-beef tataki geg. - Zusje", unit: "portie van 1.000 gr", id: "171984_ZK", price: "€ 22,49" },
+        { title: "R-limburgs zuurvlees - Zusje", unit: "portie van 1.000 gr", id: "171985_BB", price: "€ 14,98" },
+        { title: "Spekplakjes gerookt - Bravour Essentials", unit: "Bak (1kg)", id: "137546_BB", price: "€ 8,88" }
+      ]
+    },
+    {
+      name: "Koeling vis",
+      products: [
+        { title: "Rivierkreeftvlees - Heiploeg", unit: "Tray (500gr)", id: "119635_TR", price: "€ 14,42" },
+        { title: "Tonijnsalade - Bravour Essentials", unit: "Bak (1kg)", id: "080655_BB", price: "€ 8,27" },
+        { title: "Krabsalade - Bravour Essentials", unit: "Bak (1kg)", id: "080657_BB", price: "€ 6,34" }
+      ]
+    },
+    {
+      name: "Koeling zuivel",
+      products: [
+        { title: "Creme brulee - Milram", unit: "Pak (1kg)", id: "144689_PK", price: "€ 4,22" },
+        { title: "Kookroom 20% vet - Bravour Essentials", unit: "Pak (1lt)", id: "118865_PK", price: "€ 2,83" },
+        { title: "Slagroom met suiker - Debic", unit: "Bus (700ml)", id: "088597_BS", price: "€ 7,19" },
+        { title: "Eiwit scharrel vlb - Bravour Essentials", unit: "Pak (1kg)", id: "105628_PK", price: "€ 4,40" },
+        { title: "Cheddar plakken - Jeffersons", unit: "Pak (88x12,3g)", id: "104832_PK", price: "€ 8,58" },
+        { title: "Ger. jong beleg.kaas - Bravour Essentials", unit: "Zak (1kg)", id: "321880_ZK", price: "€ 7,70" },
+        { title: "Kaasflakes ital.st - Bon Gusta", unit: "Bak (1kg)", id: "151723_BB", price: "€ 11,74" },
+        { title: "Creme fraice 30% - Montebourg", unit: "Bak (1ltr)", id: "146511_BB", price: "€ 7,63" },
+        { title: "Ongezouten roomboter - Echte boter", unit: "Rol (500gr)", id: "082982_RL", price: "€ 3,75" },
+        { title: "Slagroom met suiker - Debic", unit: "Fles (2lt)", id: "088455_FL", price: "€ 10,67" },
+        { title: "Tiramisu - Debic", unit: "Fles (1lt)", id: "088475_FL", price: "€ 6,48" },
+        { title: "Geitenkaas vers - Bravour Essentials", unit: "Stuk (1kg)", id: "150673_ST", price: "€ 11,27" },
+        { title: "Chocolade mousse - Debic", unit: "Fles (1lt)", id: "088471_FL", price: "€ 6,11" },
+        { title: "Geitenkaasrolletje - Bettine", unit: "Folie (200gr)", id: "094034_FO", price: "€ 2,45" },
+        { title: "Labneh liban hangop - Maza", unit: "Bak (1,5kg)", id: "099078_BB", price: "€ 10,94" },
+        { title: "Heelei scharrel vlb - Bravour Essentials", unit: "Pak (1kg)", id: "105627_PK", price: "€ 6,40" },
+        { title: "Schapenkaas 6 mnd - Sobremesa", unit: "Stuk (250gr)", id: "114831_ST", price: "€ 4,86" },
+        { title: "Room mascarpone36,5% - Debic", unit: "Fles (1lt)", id: "128286_FL", price: "€ 6,19" },
+        { title: "Ricotta - Latte Carso", unit: "Bak (250gr)", id: "135361_BB", price: "€ 1,70" },
+        { title: "Cheese spread parmes - ERU", unit: "Emmer (1kg)", id: "158962_EM", price: "€ 15,88" },
+        { title: "Witte kaasblokjes - Bravour Essentials", unit: "Emmer (1kg)", id: "157760_EM", price: "€ 14,15" }
+      ]
+    },
+    {
+      name: "Koeling overige",
+      products: [
+        { title: "Knoflook grof gehakt - Bresc", unit: "Pot (1kg)", id: "038440_PT", price: "€ 11,80" },
+        { title: "Thai dressing - Zusje", unit: "Fles (900gr)", id: "145012_FL", price: "€ 6,73" },
+        { title: "Tomatensoep geconc. - Zusje", unit: "Bak (1,5kg)", id: "079232_BB", price: "€ 9,95" },
+        { title: "Uienchutney - Zusje", unit: "Bak (840gr)", id: "114478_BB", price: "€ 6,63" },
+        { title: "Knoflooksaus - Zusje", unit: "Fles (900gr)", id: "131005_FL", price: "€ 6,87" },
+        { title: "Pepersaus - Zusje", unit: "Bak (1,4kg)", id: "145011_BB", price: "€ 8,81" },
+        { title: "Truffelmayonaise - Zusje", unit: "Fles (900gr)", id: "131011_FL", price: "€ 9,48" },
+        { title: "Aioli - Bravour Essentials", unit: "Bak (1kg)", id: "152609_BB", price: "€ 6,76" },
+        { title: "Bbq saus glad - Zusje", unit: "Fles (1000gr)", id: "154512_FL", price: "€ 7,08" },
+        { title: "Honing tijm saus gl. - Zusje", unit: "Fles (900gr)", id: "154514_FL", price: "€ 6,83" },
+        { title: "Vinaigrette - Zusje", unit: "Fles (900gr)", id: "135592_FL", price: "€ 6,48" },
+        { title: "Mihoen hoysin saus - Zusje", unit: "Bak (2kg)", id: "154513_BB", price: "€ 15,74" },
+        { title: "Steak tartaar marin. - Jordy's Keuken", unit: "Pot (500ml)", id: "093559_PT", price: "€ 8,92" },
+        { title: "Sriracha mayonaise - Zusje", unit: "Fles (900gr)", id: "157994_FL", price: "€ 6,91" },
+        { title: "Remouladesaus huisge - Schmidt", unit: "Emmer (3lt)", id: "150005_EM", price: "€ 23,18" },
+        { title: "Rode ui zoet zuur - Zusje", unit: "Bak (840gr)", id: "158048_BB", price: "€ 8,17" },
+        { title: "Butterchicken saus - Zusje", unit: "Bak (1,5kg)", id: "164743_BB", price: "€ 11,88" },
+        { title: "Gepocheerde eieren - Jordy's Keuken", unit: "Doos (48st)", id: "159545_DS", price: "€ 31,72" },
+        { title: "Witte kool salade - Zusje", unit: "Bak (2kg)", id: "164744_BB", price: "€ 15,61" },
+        { title: "Rendang witte kool - Zusje", unit: "Bak (840gr)", id: "164746_BB", price: "€ 7,50" },
+        { title: "Bietje saus bieslook - Jordy's Keuken", unit: "Flacon (720ml)", id: "155022_FN", price: "€ 9,84" },
+        { title: "Soja knoflooksaus - Zusje", unit: "Fles (1,3kg)", id: "165961_FL", price: "€ 8,17" },
+        { title: "Zoet aardappel spr. - Groentegoed", unit: "Tray (4 x 300gr)", id: "137461_TR", price: "€ 13,16" },
+        { title: "Kikkererwtspread nat - Groentegoed", unit: "Zak (1,5kg)", id: "154283_ZK", price: "€ 12,21" },
+        { title: "Kimchi 1 cm gesneden - Bikl", unit: "Emmer (1kg)", id: "160032_EM", price: "€ 10,90" },
+        { title: "Rode kool salade - Zusje", unit: "Bak (2kg)", id: "167772_BB", price: "€ 0,00" },
+        { title: "Antiboise - Zusje", unit: "Bak (850gr)", id: "171414_BB", price: "€ 7,40" },
+        { title: "Linzen vinaigrette - Zusje", unit: "Bak (840gr)", id: "171415_BB", price: "€ 7,18" }
+      ]
+    },
+    {
+      name: "Diepvries",
+      products: [
+        { title: "Mandarijnpuree - Boiron", unit: "Bak (1kg)", id: "604300_BB", price: "€ 7,94" },
+        { title: "Frikandel excellent - Bravour Essentials", unit: "Doos (40x85gr)", id: "623390_DS", price: "€ 9,38" },
+        { title: "Mini croq.b.kaas oud - Zusje", unit: "Doos (42x40gr)", id: "167778_DS", price: "€ 17,57" },
+        { title: "Mini croq.weiderund - Zusje", unit: "Doos (42x40gr)", id: "161208_DS", price: "€ 17,06" },
+        { title: "Loempia mini vegetar - Koh Pen", unit: "Doosje (60x15gr)", id: "114251_DJ", price: "€ 3,45" },
+        { title: "Festini peer - Ola", unit: "Doos (45 x 50ml)", id: "616400_DS", price: "€ 19,71" },
+        { title: "Eetb cakebeslag nat - De Maro", unit: "Emmer (3kg)", id: "100316_EM", price: "€ 21,29" },
+        { title: "Wit broodje ovaal - Odenwald", unit: "Doos (20 x 90gr)", id: "161611_DS", price: "€ 28,51" },
+        { title: "Vnm garn 16/20 asc - Bravour Essentials", unit: "Zak (1kg)", id: "091709_ZK", price: "€ 8,81" },
+        { title: "Mini sandwino span. - Zusje", unit: "Doos (200x35gr)", id: "147883_DS", price: "€ 45,78" },
+        { title: "Brioche bun gesneden - Panesco", unit: "Doos (6x20x30g)", id: "086848_DS", price: "€ 30,70" },
+        { title: "Bit.bal vega kaas ja - De Haagsche Croquetterij", unit: "Doos (54st)", id: "156273_DS", price: "€ 17,13" },
+        { title: "Bastogne parfait - Zusje", unit: "Doos (256st)", id: "142387_DS", price: "€ 116,47" },
+        { title: "Gua bao bun - PA", unit: "Doos (24 x 10x25gr)", id: "148103_DS", price: "€ 54,02" },
+        { title: "Gegrilde courgette - Zusje", unit: "Doos (5 x 1kg)", id: "171847_DS", price: "€ 18,81" },
+        { title: "Mini v-schnitzel geg - Recker", unit: "Doos (4kg)", id: "165176_DS", price: "€ 28,38" },
+        { title: "Kipreepjes ger 12mm - Bravour Essentials", unit: "Doos (4 x 2,5kg)", id: "120409_DS", price: "€ 58,52" },
+        { title: "Steak tartare - Jordy's Keuken", unit: "Rol (500gr)", id: "135237_RL", price: "€ 9,26" },
+        { title: "Focaccia romana rond - Tolini", unit: "Doos (30x140gr)", id: "137635_DS", price: "€ 34,71" },
+        { title: "Gyoza groenten - Akari", unit: "Zak (30x20gr)", id: "153322_ZK", price: "€ 4,40" },
+        { title: "Kibbeling kabeljauw - Sperling", unit: "Doos (4kg)", id: "152521_DS", price: "€ 62,07" },
+        { title: "R-carpaccio - Zusje", unit: "Doos (24x6x35g)", id: "171982_DS", price: "€ 100,24" },
+        { title: "Knofl.kruid.cham.sau - Zusje", unit: "Doos (6kg)", id: "171691_DS", price: "€ 57,13" },
+        { title: "Sorbetijs citroen - Otelli", unit: "Doos (2 x 2,5lt)", id: "151255_DS", price: "€ 20,80" },
+        { title: "Vanille ijs - Otelli", unit: "Bak (5lt)", id: "151257_BB", price: "€ 16,88" },
+        { title: "Miniwafel met parels - Veldt's", unit: "Doos (120x15gr)", id: "658710_DS", price: "€ 20,04" },
+        { title: "Kiphaasjes southern - Bravour Essentials", unit: "Zak (2,5kg)", id: "121876_ZK", price: "€ 17,21" },
+        { title: "Veget. wellington - Zusje", unit: "Doos (9,8kg)", id: "158009_DS", price: "€ 118,81" },
+        { title: "Lasagne ricotta spin - Giacobbe", unit: "Doos (100x75gr)", id: "135561_DS", price: "€ 77,85" },
+        { title: "Kalfs vitello gesned - Meatstreet", unit: "Doos (3,6kg)", id: "158112_DS", price: "€ 114,57" },
+        { title: "Vegan beefburger - Captain Food", unit: "Doos (50st)", id: "164991_DS", price: "€ 27,11" },
+        { title: "Rode tonijn tartare - Blue world Seafood", unit: "Doos (10 x 500gr)", id: "159558_DS", price: "€ 59,58" },
+        { title: "Zalmsnippers - Schmidt", unit: "Doos (5kg)", id: "161025_DS", price: "€ 61,08" },
+        { title: "Zalm porties - Schmidt", unit: "Doos (4,8kg)", id: "166486_DS", price: "€ 94,56" },
+        { title: "Falafelbites - Aviko", unit: "Doos (3 x 1kg)", id: "162123_DS", price: "€ 19,47" },
+        { title: "Potato panc.reibekuc - Aviko", unit: "Doos (6 x 1,5kg)", id: "162118_DS", price: "€ 22,46" },
+        { title: "Sorbetijs passievr - Otelli", unit: "Doos (2 x 2,5lt)", id: "152927_DS", price: "€ 34,45" },
+        { title: "Cul.pico del gallo - Cuisin'easy", unit: "Doos (4 x 1250gr)", id: "162662_DS", price: "€ 18,04" },
+        { title: "Muchrendang - MUCHroom", unit: "Doos (5 x 1kg)", id: "164916_DS", price: "€ 71,86" },
+        { title: "Mini prem.brioche rl - Panesco", unit: "Doos (150x27gr)", id: "159311_DS", price: "€ 28,34" },
+        { title: "Qnip brioche - Carl Siegert", unit: "Doos (4 x 3x275gr)", id: "043053_DS", price: "€ 29,33" },
+        { title: "Wakame zeewiersalade - Fresh Frozen", unit: "Zak (1kg)", id: "085974_ZK", price: "€ 4,69" },
+        { title: "Wortel blokjes 10x10 - Bravour Essentials", unit: "Zak (2.5kg)", id: "087052_ZK", price: "€ 2,97" },
+        { title: "Crumble amandel - Didess", unit: "Bak (1kg)", id: "117058_BB", price: "€ 12,65" },
+        { title: "Salade green valley - Cuisin'easy", unit: "Doos (4 x 1250gr)", id: "134542_DS", price: "€ 26,00" },
+        { title: "Blondie cranberry - Zusje", unit: "Doos (2 x 60st)", id: "171539_DS", price: "€ 0,00" },
+        { title: "X-pop - Ola", unit: "Doos (40 x 50ml)", id: "142424_DS", price: "€ 23,05" },
+        { title: "Roomijs yoghurt nat. - Otelli", unit: "Doos (2 x 2,5lt)", id: "152939_DS", price: "€ 0,00" },
+        { title: "Dry-aged ger.rd biet - Jordy's Keuken", unit: "Zak (500gr)", id: "144991_ZK", price: "€ 9,78" },
+        { title: "Surimi chunks msc - Bravour Essentials", unit: "Pak (500gr)", id: "151115_PK", price: "€ 2,91" },
+        { title: "New york beef pastra - LA Streetfood", unit: "Zak (500gr)", id: "158983_ZK", price: "€ 14,37" },
+        { title: "Gel van eigeel - Achenbach Delikatessen", unit: "Zakje (500gr)", id: "164776_ZJ", price: "€ 14,09" },
+        { title: "Mini naanta - Pastridor", unit: "Doos (80st)", id: "165837_DS", price: "€ 19,53" },
+        { title: "Witte rijst 100% - Smiling Cook", unit: "Doos (4 x 2,5kg)", id: "167374_DS", price: "€ 21,04" },
+        { title: "Orzo risoni - Smiling Cook", unit: "Doos (4 x 2,5kg)", id: "167459_DS", price: "€ 0,00" },
+        { title: "Cauliflower wings - Duca", unit: "Zak (1kg)", id: "169204_ZK", price: "€ 6,18" },
+        { title: "Thaise groentecurr - Zusje", unit: "Doos (3x2kg)", id: "171692_DS", price: "€ 104,20" },
+        { title: "Koffie chocomousse - Zusje", unit: "Doos (8x1kg)", id: "171693_DS", price: "€ 110,19" },
+        { title: "Doperwtencreme - Zusje", unit: "Doos (3x2kg)", id: "171694_DS", price: "€ 49,94" },
+        { title: "Kabeljauw wammen zv - Schmidt", unit: "Doos (6kg)", id: "171819_DS", price: "€ 93,05" },
+        { title: "Garnalen ringen gep. - Schmidt", unit: "Doos (9,6kg)", id: "171821_DS", price: "€ 114,98" },
+        { title: "Appelschijfjes - Zusje", unit: "Doos (5 x 1kg)", id: "171846_DS", price: "€ 12,35" },
+        { title: "Shiitake usa - MUCHroom", unit: "Doos (5 x 1kg)", id: "171852_DS", price: "€ 59,58" },
+        { title: "Gegr.groent.mix sici - Zusje", unit: "Doos (5 x 1kg)", id: "171862_DS", price: "€ 20,01" },
+        { title: "Burrito kip marinara - Zusje", unit: "Doos (30x214gr)", id: "171978_DS", price: "€ 81,29" },
+        { title: "Mini-pizza margherit - Zusje", unit: "Doos (39x220gr)", id: "171979_DS", price: "€ 65,39" },
+        { title: "R-hamburger d.dutch - Zusje", unit: "Doos (50x60gr)", id: "171983_DS", price: "€ 0,00" },
+        { title: "Kipfilet sate - Stoop Premium Meat", unit: "Krat (100x60gr)", id: "171988_KR", price: "€ 75,76" },
+        { title: "Doperwten e.f. - Bravour Essentials", unit: "Zak (2,50kg)", id: "605980_ZK", price: "€ 4,65" },
+        { title: "Viking square 11 - Pastridor", unit: "Doos (150x30gr)", id: "614290_DS", price: "€ 51,11" },
+        { title: "Poffertjes bulk - Veldt's", unit: "Doos (3700gr)", id: "646580_DS", price: "€ 21,53" }
+      ]
+    },
+    {
+      name: "Non Food Keuken",
+      products: [
+        { title: "Afslagrol trs 30x24 - Pro Smart Choice Disposables", unit: "Pak (2st)", id: "158815_PK", price: "€ 6,84" },
+        { title: "Alum.folie 30x200 di - Pro Smart Choice Disposables", unit: "Rol (1rl)", id: "143598_RL", price: "€ 14,23" },
+        { title: "Alum.folie 45x150 di - Pro Smart Choice Disposables", unit: "Rol (1rl)", id: "143599_RL", price: "€ 17,52" },
+        { title: "Bakpapier gebl.40x60 - Pro Smart Choice Disposables", unit: "Doos (500st)", id: "144732_DS", price: "€ 30,74" },
+        { title: "Rekfolie 45x300 disp - Pro Smart Choice Disposables", unit: "Rol (1rl)", id: "143594_RL", price: "€ 7,89" },
+        { title: "Rekfolie 30cm wm3000 - Wrapmaster", unit: "Doos (3x300mt)", id: "171458_DS", price: "€ 17,53" },
+        { title: "Houten parasol 10 cm - Pro Smart Choice Disposables", unit: "Doosje (150st)", id: "109189_DJ", price: "€ 3,28" },
+        { title: "Haarnetje zwart - Papstar", unit: "Pak (100st)", id: "157338_PK", price: "€ 7,14" },
+        { title: "Spuitzak green 53x28 - One Way", unit: "Doos (100st)", id: "127094_DS", price: "€ 14,81" },
+        { title: "Vacuumzak 30x40 70my - Pro Smart Choice Disposables", unit: "Zak (100st)", id: "100402_ZK", price: "€ 10,25" },
+        { title: "Vacuumzak 20x30 70my - Pro Smart Choice Disposables", unit: "Zak (100st)", id: "100421_ZK", price: "€ 5,12" },
+        { title: "Gasbus - Hendi", unit: "Krimp (4 x 277gr)", id: "164626_KI", price: "€ 7,20" },
+        { title: "Onthardingszout - Broxo", unit: "Zak (25kg)", id: "777910_ZK", price: "€ 10,37" },
+        { title: "Soda - Piek", unit: "Zak (2kg)", id: "101554_ZK", price: "€ 2,42" },
+        { title: "Inktlint keukenprint - Epson", unit: "Stuk (1st)", id: "151482_ST", price: "€ 3,07" },
+        { title: "Koksbrander - Hendi", unit: "Stuk (1st)", id: "126172_ST", price: "€ 14,00" },
+        { title: "Slagr.patr.8gr n20 - Pro Smart Choice Tools", unit: "Doosje (50st)", id: "152469_DJ", price: "€ 10,78" },
+        { title: "Bamboe prikkers - Zusje", unit: "Doos (20 x 250st)", id: "167774_DS", price: "€ 45,30" },
+        { title: "Schoonmaakazijn - Rio", unit: "Can (5lt)", id: "145614_CN", price: "€ 2,56" },
+        { title: "Detec. pleisters - Heka", unit: "Doosje (100st)", id: "056876_DJ", price: "€ 6,35" },
+        { title: "Handschoen zw. mt l - Pro Smart Choice Disposables", unit: "Doosje (100st)", id: "089026_DJ", price: "€ 3,99" },
+        { title: "Rekfolie 45x300 navu - Pro Smart Choice Disposables", unit: "Doos (4rl)", id: "143595_DS", price: "€ 31,89" },
+        { title: "Rekfolie 45cm wp4500 - Wrapmaster", unit: "Doos (3x300mt)", id: "171457_DS", price: "€ 24,97" },
+        { title: "Frituurvetindicator - 3M", unit: "Doosje (20st)", id: "146571_DJ", price: "€ 22,47" },
+        { title: "Tuitenrager blauw - Ecolab", unit: "Stuk (1st)", id: "172155_ST", price: "€ 0,00" },
+        { title: "Regul. pods all-in-1 - Ariel", unit: "Doos (2 x 80st)", id: "171568_DS", price: "€ 0,00" }
+      ]
+    }
+  ]
+};
+
+/* ---------- LOCALSTORAGE ---------- */
+const LS_KEYS = {
+  voorraad: "vbl.voorraad",       // id -> raw string ("", "0,5", "3")
+  streef:   "vbl.streef",         // id -> integer
+  unavail:  "vbl.unavailable",    // id[] (unavailable on delivery day)
+  theme:    "vbl.theme",
+};
+
+function loadLS(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch { return fallback; }
+}
+function saveLS(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+}
+
+const state = {
+  voorraad: loadLS(LS_KEYS.voorraad, {}),
+  streef:   loadLS(LS_KEYS.streef, {}),
+  unavail:  new Set(loadLS(LS_KEYS.unavail, [])),
+};
+
+function persist() {
+  saveLS(LS_KEYS.voorraad, state.voorraad);
+  saveLS(LS_KEYS.streef, state.streef);
+  saveLS(LS_KEYS.unavail, [...state.unavail]);
+}
+
+/* ---------- HELPERS ---------- */
+function parseDecimal(str) {
+  if (str === "" || str == null) return null;
+  const n = parseFloat(String(str).replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+function teBestellen(id) {
+  const streef = state.streef[id];
+  if (!streef || streef <= 0) return null;
+  const voorraad = parseDecimal(state.voorraad[id]) ?? 0;
+  return Math.max(0, Math.ceil(streef - voorraad));
+}
+function categoryId(name) {
+  return "cat-" + name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+}
+
+/* ---------- RENDER ---------- */
+function renderChips() {
+  const nav = document.getElementById("chip-nav");
+  nav.innerHTML = "";
+  DATA.categories.forEach(cat => {
+    const btn = document.createElement("a");
+    btn.href = "#" + categoryId(cat.name);
+    btn.className = "chip inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors";
+    btn.dataset.cat = cat.name;
+    btn.innerHTML = `<span>${cat.name}</span><span class="chip-count text-[10px] tabular-nums opacity-60"></span>`;
+    nav.appendChild(btn);
+  });
+}
+
+function renderMain() {
+  const main = document.getElementById("main");
+  main.innerHTML = "";
+
+  DATA.categories.forEach(cat => {
+    const section = document.createElement("section");
+    section.id = categoryId(cat.name);
+    section.dataset.cat = cat.name;
+    section.className = "mb-6";
+
+    section.innerHTML = `
+      <div class="sticky top-[8.5rem] sm:top-[8.5rem] z-10 -mx-3 px-3 py-2 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur border-b border-slate-200 dark:border-slate-800 mb-2 flex items-center gap-2">
+        <h2 class="font-bold text-base tracking-tight">${cat.name}</h2>
+        <span class="cat-count text-xs text-slate-500 dark:text-slate-400 tabular-nums"></span>
+      </div>
+      <div class="grid gap-2"></div>
+    `;
+
+    const grid = section.querySelector(".grid");
+    cat.products.forEach((p, i) => {
+      grid.appendChild(renderCard(p, i + 1));
+    });
+    main.appendChild(section);
+  });
+}
+
+function renderCard(p, num) {
+  const card = document.createElement("article");
+  card.className = "card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-sm";
+  card.dataset.id = p.id;
+  card.dataset.search = (p.title + " " + p.id + " " + p.unit).toLowerCase();
+
+  const voorraad = state.voorraad[p.id] ?? "";
+  const streef = state.streef[p.id] ?? "";
+  const unavail = state.unavail.has(p.id);
+
+  card.innerHTML = `
+    <div class="flex items-start gap-2 mb-2">
+      <span class="shrink-0 inline-flex items-center justify-center min-w-[1.75rem] h-7 px-1.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-semibold tabular-nums">${num}</span>
+      <div class="flex-1 min-w-0">
+        <div class="font-medium text-sm leading-snug break-words">${escapeHtml(p.title)}</div>
+        <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
+          <span>${escapeHtml(p.unit)}</span>
+          <span class="text-slate-400 dark:text-slate-500">·</span>
+          <span class="font-mono">${escapeHtml(p.id)}</span>
+          <span class="text-slate-400 dark:text-slate-500">·</span>
+          <span>${escapeHtml(p.price)}</span>
+        </div>
+      </div>
+      <button class="unavail-toggle shrink-0 p-1.5 rounded-md text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 ${unavail ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/20' : ''}" title="Niet beschikbaar op leverdag" aria-pressed="${unavail}">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke-linecap="round" stroke-linejoin="round"/><line x1="12" y1="9" x2="12" y2="13" stroke-linecap="round" stroke-linejoin="round"/><line x1="12" y1="17" x2="12.01" y2="17" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+
+    <div class="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
+      <div>
+        <label class="block text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-medium mb-0.5">Voorraad nu</label>
+        <div class="flex items-stretch rounded-lg border border-slate-300 dark:border-slate-700 focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-emerald-500 overflow-hidden bg-white dark:bg-slate-950">
+          <button type="button" class="voorraad-step px-2.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 text-lg leading-none select-none" data-step="-1" aria-label="Min 1">−</button>
+          <input type="text" inputmode="decimal" class="voorraad-input flex-1 min-w-0 w-full bg-transparent text-center font-semibold text-base py-1.5 focus:outline-none tabular-nums" value="${escapeAttr(String(voorraad))}" placeholder="0" />
+          <button type="button" class="voorraad-step px-2.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 text-lg leading-none select-none" data-step="1" aria-label="Plus 1">+</button>
+        </div>
+      </div>
+      <div>
+        <label class="block text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-medium mb-0.5">Streef</label>
+        <input type="number" inputmode="numeric" min="0" step="1" class="streef-input w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-center font-medium text-base py-1.5 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400 tabular-nums" value="${escapeAttr(String(streef))}" placeholder="0" />
+      </div>
+      <div class="te-bestellen min-w-[3.5rem] h-[2.5rem] rounded-lg flex items-center justify-center font-bold text-base px-3 tabular-nums bg-slate-100 dark:bg-slate-800 text-slate-400" aria-label="Te bestellen">—</div>
+    </div>
+  `;
+
+  // Wire inputs
+  const vIn = card.querySelector(".voorraad-input");
+  const sIn = card.querySelector(".streef-input");
+
+  vIn.addEventListener("input", () => {
+    const raw = vIn.value.trim();
+    if (raw === "") delete state.voorraad[p.id];
+    else state.voorraad[p.id] = raw;
+    saveLS(LS_KEYS.voorraad, state.voorraad);
+    updateCard(p.id);
+    updateGlobal();
+  });
+  vIn.addEventListener("blur", () => {
+    // Normalize "0,5" -> keep raw input, but if invalid, clear
+    if (vIn.value.trim() !== "" && parseDecimal(vIn.value) === null) {
+      vIn.value = "";
+      delete state.voorraad[p.id];
+      saveLS(LS_KEYS.voorraad, state.voorraad);
+      updateCard(p.id);
+      updateGlobal();
+    }
+  });
+
+  sIn.addEventListener("input", () => {
+    const n = parseInt(sIn.value, 10);
+    if (!Number.isFinite(n) || n <= 0) delete state.streef[p.id];
+    else state.streef[p.id] = n;
+    saveLS(LS_KEYS.streef, state.streef);
+    updateCard(p.id);
+    updateGlobal();
+  });
+
+  card.querySelectorAll(".voorraad-step").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const step = parseInt(btn.dataset.step, 10);
+      const cur = parseDecimal(vIn.value) ?? 0;
+      const next = Math.max(0, cur + step);
+      vIn.value = String(next);
+      state.voorraad[p.id] = String(next);
+      saveLS(LS_KEYS.voorraad, state.voorraad);
+      updateCard(p.id);
+      updateGlobal();
+    });
+  });
+
+  card.querySelector(".unavail-toggle").addEventListener("click", () => {
+    if (state.unavail.has(p.id)) state.unavail.delete(p.id);
+    else state.unavail.add(p.id);
+    saveLS(LS_KEYS.unavail, [...state.unavail]);
+    renderCardClass(p.id);
+  });
+
+  return card;
+}
+
+function updateCard(id) {
+  const card = document.querySelector(`.card[data-id="${CSS.escape(id)}"]`);
+  if (!card) return;
+  const cell = card.querySelector(".te-bestellen");
+  const qty = teBestellen(id);
+  const isUnavail = state.unavail.has(id);
+
+  cell.classList.remove(
+    "bg-slate-100","dark:bg-slate-800","text-slate-400",
+    "bg-emerald-100","dark:bg-emerald-900/40","text-emerald-700","dark:text-emerald-300",
+    "bg-amber-100","dark:bg-amber-900/40","text-amber-800","dark:text-amber-200"
+  );
+
+  if (qty === null) {
+    cell.textContent = "—";
+    cell.classList.add("bg-slate-100","dark:bg-slate-800","text-slate-400");
+  } else if (qty === 0) {
+    cell.textContent = "0";
+    cell.classList.add("bg-slate-100","dark:bg-slate-800","text-slate-400");
+  } else if (isUnavail) {
+    cell.textContent = "⚠ " + qty;
+    cell.classList.add("bg-amber-100","dark:bg-amber-900/40","text-amber-800","dark:text-amber-200");
+    cell.title = "Niet beschikbaar op leverdag";
+  } else {
+    cell.textContent = qty;
+    cell.classList.add("bg-emerald-100","dark:bg-emerald-900/40","text-emerald-700","dark:text-emerald-300");
+    cell.title = "";
+  }
+}
+
+function renderCardClass(id) {
+  const card = document.querySelector(`.card[data-id="${CSS.escape(id)}"]`);
+  if (!card) return;
+  const btn = card.querySelector(".unavail-toggle");
+  const isUnavail = state.unavail.has(id);
+  btn.setAttribute("aria-pressed", String(isUnavail));
+  btn.classList.toggle("text-amber-500", isUnavail);
+  btn.classList.toggle("bg-amber-50", isUnavail);
+  btn.classList.toggle("dark:bg-amber-900/20", isUnavail);
+  btn.classList.toggle("text-slate-400", !isUnavail);
+  updateCard(id);
+}
+
+function updateAllCards() {
+  DATA.categories.forEach(c => c.products.forEach(p => updateCard(p.id)));
+}
+
+function updateGlobal() {
+  // Counters: filled (heeft voorraadNu) and to order (qty > 0)
+  let total = 0, filled = 0, toOrderCount = 0, toOrderUnits = 0;
+  const filledByCat = new Map();
+  const totalByCat = new Map();
+
+  DATA.categories.forEach(cat => {
+    let f = 0;
+    cat.products.forEach(p => {
+      total++;
+      const has = state.voorraad[p.id] !== undefined && state.voorraad[p.id] !== "";
+      if (has) { filled++; f++; }
+      const q = teBestellen(p.id);
+      if (q && q > 0) { toOrderCount++; toOrderUnits += q; }
+    });
+    totalByCat.set(cat.name, cat.products.length);
+    filledByCat.set(cat.name, f);
+  });
+
+  const cText = `ingevuld ${filled} / ${total} · te bestellen ${toOrderCount}`;
+  document.getElementById("counters").textContent = cText;
+  document.getElementById("counters-mobile").textContent = cText;
+
+  document.getElementById("order-summary-line").textContent =
+    `${toOrderCount} ${toOrderCount === 1 ? "product" : "producten"} te bestellen`;
+  document.getElementById("order-summary-detail").textContent =
+    `— totaal ${toOrderUnits} ${toOrderUnits === 1 ? "verpakking" : "verpakkingen"}`;
+  document.getElementById("show-order-btn").disabled = toOrderCount === 0;
+
+  // chip counts
+  document.querySelectorAll("#chip-nav .chip").forEach(chip => {
+    const cat = chip.dataset.cat;
+    chip.querySelector(".chip-count").textContent =
+      `${filledByCat.get(cat) ?? 0}/${totalByCat.get(cat) ?? 0}`;
+  });
+}
+
+/* ---------- SEARCH ---------- */
+function applySearch(q) {
+  q = q.trim().toLowerCase();
+  document.getElementById("search-clear").classList.toggle("hidden", q === "");
+  document.querySelectorAll("section[data-cat]").forEach(section => {
+    let anyVisible = false;
+    section.querySelectorAll(".card").forEach(card => {
+      const match = q === "" || card.dataset.search.includes(q);
+      card.classList.toggle("hidden", !match);
+      if (match) anyVisible = true;
+    });
+    section.classList.toggle("hidden", q !== "" && !anyVisible);
+  });
+}
+
+/* ---------- ORDER MODAL ---------- */
+function buildOrderRows() {
+  const rows = [];
+  DATA.categories.forEach(cat => {
+    cat.products.forEach(p => {
+      const q = teBestellen(p.id);
+      if (q && q > 0) rows.push({ category: cat.name, ...p, qty: q, unavail: state.unavail.has(p.id) });
+    });
+  });
+  return rows;
+}
+function renderOrderModal() {
+  const list = document.getElementById("order-list");
+  const rows = buildOrderRows();
+  if (!rows.length) {
+    list.innerHTML = `<div class="text-sm text-slate-500 dark:text-slate-400 py-8 text-center">Niets te bestellen.</div>`;
+    return;
+  }
+  let html = "";
+  let lastCat = null;
+  rows.forEach(r => {
+    if (r.category !== lastCat) {
+      if (lastCat !== null) html += `</div>`;
+      html += `<h3 class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold mt-4 mb-1.5 first:mt-0">${escapeHtml(r.category)}</h3><div class="rounded-lg border border-slate-200 dark:border-slate-800 divide-y divide-slate-200 dark:divide-slate-800 overflow-hidden">`;
+      lastCat = r.category;
+    }
+    html += `
+      <div class="flex items-center gap-3 px-3 py-2 ${r.unavail ? 'bg-amber-50 dark:bg-amber-900/10' : ''}">
+        <span class="font-mono text-xs text-slate-500 dark:text-slate-400 shrink-0 w-20">${escapeHtml(r.id)}</span>
+        <span class="flex-1 text-sm truncate">${escapeHtml(r.title)}${r.unavail ? ' <span class="text-amber-600 dark:text-amber-400 text-xs">(⚠ leverdag?)</span>' : ''}</span>
+        <span class="font-bold text-base tabular-nums text-emerald-700 dark:text-emerald-300">×&nbsp;${r.qty}</span>
+      </div>`;
+  });
+  if (lastCat !== null) html += `</div>`;
+  list.innerHTML = html;
+}
+function orderAsTSV() {
+  return buildOrderRows().map(r => `${r.id}\t${r.title}\t${r.qty}`).join("\n");
+}
+function orderAsCSV() {
+  const esc = s => /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  const head = "artikelnummer,naam,aantal";
+  const body = buildOrderRows().map(r => `${esc(r.id)},${esc(r.title)},${r.qty}`).join("\n");
+  return head + "\n" + body;
+}
+
+async function copyToClipboard(text, label) {
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast(`${label} gekopieerd (${text.split("\n").length} regels)`);
+  } catch {
+    // fallback
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); showToast(`${label} gekopieerd`); }
+    catch { showToast("Kopiëren mislukt — selecteer en kopieer handmatig", true); }
+    document.body.removeChild(ta);
+  }
+}
+function showToast(msg, isError) {
+  const el = document.getElementById("copy-toast");
+  el.textContent = msg;
+  el.classList.toggle("bg-emerald-100", !isError);
+  el.classList.toggle("dark:bg-emerald-900/40", !isError);
+  el.classList.toggle("text-emerald-800", !isError);
+  el.classList.toggle("dark:text-emerald-200", !isError);
+  el.classList.toggle("bg-rose-100", !!isError);
+  el.classList.toggle("dark:bg-rose-900/40", !!isError);
+  el.classList.toggle("text-rose-800", !!isError);
+  el.classList.toggle("dark:text-rose-200", !!isError);
+  el.classList.remove("hidden");
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => el.classList.add("hidden"), 2400);
+}
+
+/* ---------- THEME ---------- */
+function applyTheme(theme) {
+  if (theme === "dark") document.documentElement.classList.add("dark");
+  else document.documentElement.classList.remove("dark");
+}
+function initTheme() {
+  const saved = localStorage.getItem(LS_KEYS.theme);
+  if (saved) applyTheme(saved);
+  else if (window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches) applyTheme("dark");
+}
+function toggleTheme() {
+  const isDark = document.documentElement.classList.toggle("dark");
+  localStorage.setItem(LS_KEYS.theme, isDark ? "dark" : "light");
+}
+
+/* ---------- ESCAPING ---------- */
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+}
+function escapeAttr(s) { return escapeHtml(s); }
+
+/* ---------- IMPORT/EXPORT STREEFVOORRADEN ---------- */
+function exportStreef() {
+  const data = { exported: new Date().toISOString(), streefvoorraden: state.streef };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `streefvoorraden-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+function importStreef(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const obj = JSON.parse(reader.result);
+      const incoming = obj.streefvoorraden || obj;
+      if (typeof incoming !== "object" || Array.isArray(incoming)) throw new Error("Ongeldig formaat");
+      if (!confirm("Streefvoorraden vervangen door geïmporteerd bestand?")) return;
+      state.streef = {};
+      Object.entries(incoming).forEach(([id, v]) => {
+        const n = parseInt(v, 10);
+        if (Number.isFinite(n) && n > 0) state.streef[id] = n;
+      });
+      saveLS(LS_KEYS.streef, state.streef);
+      // rerender values
+      DATA.categories.forEach(c => c.products.forEach(p => {
+        const card = document.querySelector(`.card[data-id="${CSS.escape(p.id)}"]`);
+        if (card) {
+          card.querySelector(".streef-input").value = state.streef[p.id] ?? "";
+        }
+      }));
+      updateAllCards();
+      updateGlobal();
+      showToast(`Streefvoorraden geïmporteerd (${Object.keys(state.streef).length} producten)`);
+      closeMenu();
+    } catch (e) {
+      alert("Importeren mislukt: " + e.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* ---------- MENU / MODAL HELPERS ---------- */
+function openModal(id) {
+  document.getElementById(id).classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+}
+function closeModal(id) {
+  document.getElementById(id).classList.add("hidden");
+  document.body.style.overflow = "";
+}
+function closeMenu() { closeModal("menu-sheet"); }
+
+/* ---------- INIT ---------- */
+function init() {
+  initTheme();
+  renderChips();
+  renderMain();
+  updateAllCards();
+  updateGlobal();
+
+  // Search
+  const search = document.getElementById("search");
+  search.addEventListener("input", e => applySearch(e.target.value));
+  document.getElementById("search-clear").addEventListener("click", () => {
+    search.value = ""; applySearch(""); search.focus();
+  });
+
+  // Theme toggle
+  document.getElementById("dark-toggle").addEventListener("click", toggleTheme);
+
+  // Bottom bar
+  document.getElementById("show-order-btn").addEventListener("click", () => {
+    renderOrderModal();
+    openModal("order-modal");
+  });
+  document.getElementById("close-modal-btn").addEventListener("click", () => closeModal("order-modal"));
+  document.getElementById("order-modal").addEventListener("click", e => {
+    if (e.target.id === "order-modal") closeModal("order-modal");
+  });
+
+  document.getElementById("copy-tsv-btn").addEventListener("click", () => copyToClipboard(orderAsTSV(), "TSV"));
+  document.getElementById("copy-csv-btn").addEventListener("click", () => copyToClipboard(orderAsCSV(), "CSV"));
+
+  // Menu
+  document.getElementById("menu-btn").addEventListener("click", () => openModal("menu-sheet"));
+  document.querySelectorAll("[data-close-menu]").forEach(el => el.addEventListener("click", closeMenu));
+  document.getElementById("menu-sheet").addEventListener("click", e => {
+    if (e.target.id === "menu-sheet") closeMenu();
+  });
+
+  document.getElementById("reset-stock-btn").addEventListener("click", () => {
+    if (!confirm("Alle ingevulde voorraden wissen?")) return;
+    state.voorraad = {};
+    saveLS(LS_KEYS.voorraad, state.voorraad);
+    DATA.categories.forEach(c => c.products.forEach(p => {
+      const card = document.querySelector(`.card[data-id="${CSS.escape(p.id)}"]`);
+      if (card) card.querySelector(".voorraad-input").value = "";
+    }));
+    updateAllCards();
+    updateGlobal();
+    closeMenu();
+    showToast("Voorraden gewist");
+  });
+
+  document.getElementById("reset-streef-btn").addEventListener("click", () => {
+    if (!confirm("Alle streefvoorraden op 0 zetten?")) return;
+    state.streef = {};
+    saveLS(LS_KEYS.streef, state.streef);
+    DATA.categories.forEach(c => c.products.forEach(p => {
+      const card = document.querySelector(`.card[data-id="${CSS.escape(p.id)}"]`);
+      if (card) card.querySelector(".streef-input").value = "";
+    }));
+    updateAllCards();
+    updateGlobal();
+    closeMenu();
+    showToast("Streefvoorraden gereset");
+  });
+
+  document.getElementById("export-streef-btn").addEventListener("click", () => { exportStreef(); closeMenu(); });
+  document.getElementById("import-streef-input").addEventListener("change", e => {
+    const f = e.target.files?.[0];
+    if (f) importStreef(f);
+    e.target.value = "";
+  });
+
+  // Esc closes modals
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") {
+      closeModal("order-modal");
+      closeMenu();
+    }
+  });
+}
+
+document.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>
