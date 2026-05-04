@@ -82,6 +82,21 @@
   </div>
 </div>
 
+<!-- ============================ DELIVERY DAY PICKER (top of page) ============================ -->
+<section id="delivery-picker" class="max-w-5xl mx-auto px-3 pt-3">
+  <div class="rounded-xl border-2 border-emerald-300 dark:border-emerald-700 bg-emerald-50/60 dark:bg-emerald-900/20 p-3">
+    <div class="flex items-center justify-between mb-2">
+      <h3 class="text-xs uppercase tracking-wider text-emerald-900 dark:text-emerald-100 font-semibold">Leverdag</h3>
+      <span id="sync-indicator" class="text-[11px] tabular-nums text-slate-500 dark:text-slate-400"></span>
+    </div>
+    <div id="quick-dates" class="grid grid-cols-3 gap-2 mb-2"></div>
+    <div class="flex items-center gap-2">
+      <label class="text-xs text-slate-600 dark:text-slate-400 shrink-0">Andere datum:</label>
+      <input id="custom-date" type="date" class="flex-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+    </div>
+  </div>
+</section>
+
 <!-- ============================ MAIN ============================ -->
 <main id="main" class="max-w-5xl mx-auto px-3 pt-3 pb-32"></main>
 
@@ -92,114 +107,23 @@
       <div class="font-semibold tabular-nums truncate" id="order-summary-line">0 / 268 ingevuld</div>
       <div class="text-xs text-slate-500 dark:text-slate-400 tabular-nums truncate" id="order-summary-detail">0 producten te bestellen</div>
     </div>
-    <button id="show-order-btn" aria-label="Toon te bestellen" class="shrink-0 p-2.5 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 disabled:opacity-50">
-      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
-    <button id="open-spreadsheet-btn" class="shrink-0 px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-medium text-sm shadow-sm flex items-center gap-1.5">
-      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke-linecap="round" stroke-linejoin="round"/><polyline points="14 2 14 8 20 8" stroke-linecap="round" stroke-linejoin="round"/><line x1="8" y1="13" x2="16" y2="13" stroke-linecap="round" stroke-linejoin="round"/><line x1="8" y1="17" x2="16" y2="17" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Spreadsheet
+    <button id="submit-btn" class="shrink-0 px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-sm shadow-sm disabled:opacity-50 flex items-center gap-1.5">
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span id="submit-label">Indienen</span>
     </button>
   </div>
 </div>
 
-<!-- ============================ ORDER MODAL ============================ -->
-<div id="order-modal" class="hidden fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center">
-  <div class="bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-2xl max-h-[92vh] flex flex-col shadow-xl">
-    <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
-      <h2 class="font-semibold flex-1">Bestelling</h2>
-      <button id="copy-tsv-btn" class="px-3 py-1.5 text-xs rounded-md bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 font-medium">Kopieer TSV</button>
-      <button id="copy-csv-btn" class="px-3 py-1.5 text-xs rounded-md bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-medium">CSV</button>
-      <button id="close-modal-btn" aria-label="Sluiten" class="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800">
-        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-      </button>
+
+<!-- ============================ INGEDIEND-OVERLAY ============================ -->
+<div id="submitted-screen" class="hidden fixed inset-0 z-50 bg-white dark:bg-slate-950 flex items-center justify-center px-6">
+  <div class="text-center max-w-sm">
+    <div class="w-20 h-20 mx-auto mb-5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
+      <svg class="w-10 h-10 text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
-    <div id="order-list" class="flex-1 overflow-y-auto px-4 py-3 text-sm"></div>
-    <div id="copy-toast" class="hidden mx-4 mb-3 px-3 py-2 text-xs rounded-md bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200"></div>
-  </div>
-</div>
-
-<!-- ============================ GOOGLE SHEETS MODAL ============================ -->
-<div id="spreadsheet-modal" class="hidden fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center">
-  <div class="bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-xl max-h-[92vh] flex flex-col shadow-xl">
-    <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
-      <h2 class="font-semibold flex-1">Google Sheets</h2>
-      <button id="close-spreadsheet-btn" aria-label="Sluiten" class="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800">
-        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-      </button>
-    </div>
-
-    <div class="flex-1 overflow-y-auto px-4 py-3 text-sm space-y-4">
-
-      <!-- ====== Setup section (Apps Script URL) ====== -->
-      <section id="gs-setup">
-        <div id="gs-not-configured" class="hidden rounded-lg border-2 border-dashed border-amber-400 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 p-3 mb-2">
-          <div class="flex items-start gap-2">
-            <svg class="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12" stroke-linecap="round" stroke-linejoin="round"/><line x1="12" y1="16" x2="12.01" y2="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <div class="flex-1">
-              <div class="font-semibold text-amber-900 dark:text-amber-100">Eenmalige setup nodig</div>
-              <div class="text-xs text-amber-800 dark:text-amber-200 mt-0.5">Verbind de app met je Google Sheet via een Apps Script web-app URL.</div>
-              <button id="gs-show-instructions-btn" class="mt-2 text-xs underline font-medium text-amber-900 dark:text-amber-100">Toon stappenplan ↓</button>
-            </div>
-          </div>
-        </div>
-
-        <details id="gs-instructions" class="text-xs text-slate-700 dark:text-slate-300 space-y-2 mb-2">
-          <summary class="cursor-pointer text-xs underline text-slate-600 dark:text-slate-400 mb-2">Setup-instructies</summary>
-          <ol class="list-decimal pl-5 space-y-1.5 mt-2">
-            <li>Open <a href="https://sheets.new" target="_blank" rel="noopener" class="underline text-emerald-700 dark:text-emerald-400">sheets.new</a> en geef de Sheet een naam (bv. "Bestellingen Zusje").</li>
-            <li>Klik in het menu op <strong>Extensies → Apps Script</strong>.</li>
-            <li>Verwijder de standaard <code>function myFunction()</code> code, plak hieronder de hele code en sla op (Ctrl+S of diskette-icoon).</li>
-            <li class="space-y-1.5">
-              <button id="gs-copy-script-btn" class="text-xs px-2.5 py-1 rounded bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-medium">Kopieer Apps Script</button>
-              <details>
-                <summary class="cursor-pointer text-[10px] text-slate-500">Bekijk script…</summary>
-                <pre id="gs-script-code" class="bg-slate-100 dark:bg-slate-800 rounded p-2 text-[10px] overflow-x-auto whitespace-pre mt-1 leading-tight"></pre>
-              </details>
-            </li>
-            <li>Klik <strong>Implementeren → Nieuwe implementatie</strong> (Deploy → New deployment).</li>
-            <li>Bij het tandwiel kies type <strong>Web-app</strong>. Bij <em>Uitvoeren als</em>: <strong>Mij</strong>. Bij <em>Wie heeft toegang</em>: <strong>Iedereen</strong>.</li>
-            <li>Klik <strong>Implementeren</strong>, geef de eerste keer toegang via je Google-account.</li>
-            <li>Kopieer de <strong>web-app URL</strong> (eindigt op <code>/exec</code>) en plak hieronder.</li>
-          </ol>
-        </details>
-
-        <div id="gs-config-row" class="flex items-stretch gap-2">
-          <input id="gs-url-input" type="url" placeholder="https://script.google.com/.../exec" autocomplete="off" spellcheck="false" class="flex-1 min-w-0 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-          <button id="gs-save-url-btn" class="shrink-0 px-3 py-2 rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-xs font-medium">Verbind</button>
-        </div>
-
-        <div id="gs-connected-row" class="hidden items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-xs">
-          <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span class="flex-1 font-medium text-emerald-800 dark:text-emerald-200 truncate">Verbonden met Google Sheets</span>
-          <button id="gs-edit-url-btn" class="text-xs underline text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">Wijzig</button>
-        </div>
-      </section>
-
-      <hr class="border-slate-200 dark:border-slate-800" />
-
-      <!-- ====== Date picker ====== -->
-      <section>
-        <h3 class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold mb-2">Voor welke leverdag?</h3>
-        <div id="quick-dates" class="grid grid-cols-3 gap-2 mb-2"></div>
-        <div class="flex items-center gap-2 mb-3">
-          <label class="text-xs text-slate-500 dark:text-slate-400 shrink-0">Of:</label>
-          <input id="custom-date" type="date" class="flex-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-        </div>
-        <button id="save-delivery-btn" class="w-full px-4 py-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-medium shadow-sm disabled:opacity-50 flex items-center justify-center gap-2">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke-linecap="round" stroke-linejoin="round"/><polyline points="14 2 14 8 20 8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span id="save-delivery-label">Opslaan in Google Sheets</span>
-        </button>
-        <div id="save-hint" class="text-xs text-slate-500 dark:text-slate-400 mt-1.5 text-center"></div>
-      </section>
-
-      <!-- ====== Open Sheet link (after first push) ====== -->
-      <a id="gs-open-link" href="#" target="_blank" rel="noopener" class="hidden items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm font-medium">
-        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke-linecap="round" stroke-linejoin="round"/><polyline points="15 3 21 3 21 9" stroke-linecap="round" stroke-linejoin="round"/><line x1="10" y1="14" x2="21" y2="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Open Google Sheet
-      </a>
-
-    </div>
-    <div id="ss-toast" class="hidden mx-4 mb-3 px-3 py-2 text-xs rounded-md bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200"></div>
+    <h2 class="text-2xl font-semibold tracking-tight mb-1">De bestelling is ingediend.</h2>
+    <p id="submitted-detail" class="text-sm text-slate-500 dark:text-slate-400"></p>
+    <button id="new-order-btn" class="mt-8 text-sm text-slate-500 dark:text-slate-400 underline">Nieuwe bestelling</button>
   </div>
 </div>
 
@@ -569,9 +493,11 @@ const LS_KEYS = {
   streef:   "vbl.streef",         // id -> integer
   unavail:  "vbl.unavailable",    // id[] (unavailable on delivery day)
   theme:    "vbl.theme",
-  gsUrl:    "vbl.gsUrl",          // Apps Script web app URL (eindigt op /exec)
-  gsSheetUrl: "vbl.gsSheetUrl",   // URL van de Google Sheet zelf (uit response)
+  selectedDate: "vbl.selectedDate", // gekozen leverdag (YYYY-MM-DD)
 };
+
+// Hardcoded Apps Script web-app endpoint. Eindigt op /exec.
+const GS_URL = "https://script.google.com/macros/s/AKfycbySn0dBVBmVmxeB6FMTf8X19hEF0K6dheiTMJnLflKhEdCfIKhf8b8mPrZMweiOpSmP/exec";
 
 function loadLS(key, fallback) {
   try {
@@ -587,11 +513,12 @@ const state = {
   voorraad: loadLS(LS_KEYS.voorraad, {}),
   streef:   loadLS(LS_KEYS.streef, {}),
   unavail:  new Set(loadLS(LS_KEYS.unavail, [])),
-  gsUrl:    localStorage.getItem(LS_KEYS.gsUrl) || "",
-  gsSheetUrl: localStorage.getItem(LS_KEYS.gsSheetUrl) || "",
   editStreef: false,
-  selectedDate: null,   // YYYY-MM-DD
+  selectedDate: localStorage.getItem(LS_KEYS.selectedDate) || null,
   pushing: false,
+  syncStatus: "idle",   // idle | pending | saving | ok | error
+  syncMsg: "",
+  submitted: false,
 };
 
 function persist() {
@@ -715,6 +642,7 @@ function renderCard(p, num) {
     saveLS(LS_KEYS.voorraad, state.voorraad);
     updateCard(p.id);
     updateGlobal();
+    scheduleSync();
   });
   vIn.addEventListener("blur", () => {
     // Normalize "0,5" -> keep raw input, but if invalid, clear
@@ -724,6 +652,7 @@ function renderCard(p, num) {
       saveLS(LS_KEYS.voorraad, state.voorraad);
       updateCard(p.id);
       updateGlobal();
+      scheduleSync();
     }
   });
 
@@ -746,6 +675,7 @@ function renderCard(p, num) {
       saveLS(LS_KEYS.voorraad, state.voorraad);
       updateCard(p.id);
       updateGlobal();
+      scheduleSync();
     });
   });
 
@@ -1062,69 +992,6 @@ function countFilled(obj) {
 }
 
 /* ---------- GOOGLE SHEETS PUSH ---------- */
-const APPS_SCRIPT_CODE = `// === Voorraad-bestellijst → Google Sheets endpoint ===
-// Deploy als Web app: Execute as = Me, Who has access = Anyone
-
-function doPost(e) {
-  try {
-    const data = JSON.parse(e.postData.contents);
-    if (!data.date || !/^\\d{4}-\\d{2}-\\d{2}$/.test(data.date)) {
-      throw new Error('Ongeldige datum');
-    }
-    if (!Array.isArray(data.rows)) throw new Error('Geen rijen');
-
-    const ss = SpreadsheetApp.getActive();
-    const sheetName = data.date;
-
-    // Get or create sheet voor deze leverdag
-    let sheet = ss.getSheetByName(sheetName);
-    if (sheet) sheet.clear();
-    else sheet = ss.insertSheet(sheetName);
-
-    const rows = [['Product', 'Voorraad']].concat(data.rows);
-    sheet.getRange(1, 1, rows.length, 2).setValues(rows);
-    sheet.getRange(1, 1, 1, 2).setFontWeight('bold').setBackground('#f1f5f9');
-    sheet.setFrozenRows(1);
-    sheet.setColumnWidth(1, 360);
-    sheet.setColumnWidth(2, 90);
-
-    // Verwijder bladen waarvan de leverdatum al verstreken is
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    ss.getSheets().forEach(function (s) {
-      const name = s.getName();
-      if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(name)) return;
-      const parts = name.split('-').map(Number);
-      const sheetDate = new Date(parts[0], parts[1] - 1, parts[2]);
-      if (sheetDate < today && ss.getSheets().length > 1) {
-        ss.deleteSheet(s);
-      }
-    });
-
-    // Sorteer datum-bladen chronologisch
-    const dateSheets = ss.getSheets()
-      .filter(function (s) { return /^\\d{4}-\\d{2}-\\d{2}$/.test(s.getName()); })
-      .sort(function (a, b) { return a.getName().localeCompare(b.getName()); });
-    dateSheets.forEach(function (s, i) {
-      ss.setActiveSheet(s);
-      ss.moveActiveSheet(i + 1);
-    });
-
-    return ContentService
-      .createTextOutput(JSON.stringify({ ok: true, url: ss.getUrl(), sheetName: sheetName }))
-      .setMimeType(ContentService.MimeType.JSON);
-  } catch (err) {
-    return ContentService
-      .createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-}
-
-function doGet() {
-  return ContentService.createTextOutput('Voorraad-bestellijst endpoint actief');
-}
-`;
-
 function buildRows() {
   const rows = [];
   DATA.categories.forEach(cat => {
@@ -1137,15 +1004,13 @@ function buildRows() {
   return rows;
 }
 
-async function pushToGoogleSheets(dateStr) {
-  if (!state.gsUrl) { showSsToast("Eerst Apps Script URL invullen", true); return; }
-  if (state.pushing) return;
+async function pushToGoogleSheets(dateStr, { silent = false } = {}) {
+  if (state.pushing) return false;
   state.pushing = true;
-  setSaveBusy(true);
+  setSyncStatus("saving");
   try {
     const payload = { date: dateStr, rows: buildRows() };
-    // Default Content-Type 'text/plain;charset=UTF-8' voorkomt CORS-preflight
-    const res = await fetch(state.gsUrl, {
+    const res = await fetch(GS_URL, {
       method: "POST",
       body: JSON.stringify(payload),
       redirect: "follow",
@@ -1154,65 +1019,92 @@ async function pushToGoogleSheets(dateStr) {
     const text = await res.text();
     let data;
     try { data = JSON.parse(text); }
-    catch { throw new Error("Ongeldig antwoord — controleer of het script gedeployed is"); }
+    catch { throw new Error("Ongeldig antwoord van Apps Script"); }
     if (!data.ok) throw new Error(data.error || "Onbekende fout");
-    if (data.url) {
-      state.gsSheetUrl = data.url;
-      localStorage.setItem(LS_KEYS.gsSheetUrl, data.url);
-    }
-    showSsToast(`Opgeslagen in Google Sheets: blad "${data.sheetName}"`);
-    renderSpreadsheetModal();
+    setSyncStatus("ok");
+    return true;
   } catch (err) {
-    showSsToast("Fout: " + err.message, true);
+    setSyncStatus("error", err.message);
+    return false;
   } finally {
     state.pushing = false;
-    setSaveBusy(false);
   }
 }
 
-function setSaveBusy(busy) {
-  const btn = document.getElementById("save-delivery-btn");
-  if (!btn) return;
-  btn.disabled = busy;
-  document.getElementById("save-delivery-label").textContent =
-    busy ? "Bezig met opslaan…" : "Opslaan in Google Sheets";
+function setSyncStatus(status, msg) {
+  state.syncStatus = status;
+  state.syncMsg = msg || "";
+  const el = document.getElementById("sync-indicator");
+  if (!el) return;
+  if (status === "pending") {
+    el.textContent = "wacht op synchronisatie…";
+    el.className = "text-[11px] tabular-nums text-slate-500 dark:text-slate-400";
+  } else if (status === "saving") {
+    el.textContent = "bezig met opslaan…";
+    el.className = "text-[11px] tabular-nums text-slate-600 dark:text-slate-300";
+  } else if (status === "ok") {
+    const t = new Date();
+    el.textContent = `opgeslagen ${String(t.getHours()).padStart(2,"0")}:${String(t.getMinutes()).padStart(2,"0")}`;
+    el.className = "text-[11px] tabular-nums text-emerald-700 dark:text-emerald-400";
+  } else if (status === "error") {
+    el.textContent = "synchronisatie mislukt — probeer opnieuw";
+    el.className = "text-[11px] tabular-nums text-rose-600 dark:text-rose-400";
+    el.title = state.syncMsg;
+  } else {
+    el.textContent = "";
+    el.className = "text-[11px] tabular-nums text-slate-500 dark:text-slate-400";
+  }
 }
 
-function showSsToast(msg, isError) {
-  const el = document.getElementById("ss-toast");
-  el.textContent = msg;
-  el.classList.toggle("bg-emerald-100", !isError);
-  el.classList.toggle("dark:bg-emerald-900/40", !isError);
-  el.classList.toggle("text-emerald-800", !isError);
-  el.classList.toggle("dark:text-emerald-200", !isError);
-  el.classList.toggle("bg-rose-100", !!isError);
-  el.classList.toggle("dark:bg-rose-900/40", !!isError);
-  el.classList.toggle("text-rose-800", !!isError);
-  el.classList.toggle("dark:text-rose-200", !!isError);
-  el.classList.remove("hidden");
-  clearTimeout(showSsToast._t);
-  showSsToast._t = setTimeout(() => el.classList.add("hidden"), 2400);
+/* ---------- LIVE SYNC (debounced) ---------- */
+let _syncTimer = null;
+function scheduleSync() {
+  if (!state.selectedDate) return;
+  if (state.submitted) return;
+  setSyncStatus("pending");
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(() => {
+    pushToGoogleSheets(state.selectedDate, { silent: true });
+  }, 1500);
 }
 
-/* ---------- SPREADSHEET MODAL RENDER ---------- */
-function renderSpreadsheetModal() {
-  // Setup section: connected vs not-connected
-  const configured = !!state.gsUrl;
-  document.getElementById("gs-not-configured").classList.toggle("hidden", configured);
-  const connRow = document.getElementById("gs-connected-row");
-  connRow.style.display = configured ? "flex" : "none";
-  document.getElementById("gs-config-row").style.display = configured ? "none" : "flex";
-  document.getElementById("gs-url-input").value = state.gsUrl || "";
+/* ---------- SUBMIT ---------- */
+async function submitOrder() {
+  if (!state.selectedDate) {
+    alert("Kies eerst een leverdag bovenaan.");
+    return;
+  }
+  if (countFilled(state.voorraad) === 0) {
+    alert("Vul eerst minstens één voorraad in.");
+    return;
+  }
+  const btn = document.getElementById("submit-btn");
+  btn.disabled = true;
+  document.getElementById("submit-label").textContent = "Bezig met indienen…";
+  // Cancel pending debounced sync (we doen nu een synchrone push)
+  clearTimeout(_syncTimer);
+  const ok = await pushToGoogleSheets(state.selectedDate, { silent: true });
+  btn.disabled = false;
+  document.getElementById("submit-label").textContent = "Indienen";
+  if (!ok) {
+    alert("Indienen mislukt: " + (state.syncMsg || "onbekende fout") + ".\nProbeer opnieuw of controleer je internetverbinding.");
+    return;
+  }
+  // Toon ingediend-scherm
+  state.submitted = true;
+  document.getElementById("submitted-detail").textContent =
+    `Leverdag: ${formatDateNL(strToDate(state.selectedDate), true)}`;
+  document.getElementById("submitted-screen").classList.remove("hidden");
+}
 
-  // Inject Apps Script code into the <pre>
-  const pre = document.getElementById("gs-script-code");
-  if (pre && !pre.textContent) pre.textContent = APPS_SCRIPT_CODE;
-
-  // Default selected date = eerstvolgende leverdag
+/* ---------- RENDER DATE PICKER ---------- */
+function renderDatePicker() {
   const upcoming = nextDeliveryDates();
+  const todayKey = todayStr();
+  // Geldigheid van opgeslagen datum: niet in het verleden
+  if (state.selectedDate && state.selectedDate < todayKey) state.selectedDate = null;
   if (!state.selectedDate) state.selectedDate = upcoming[0].str;
 
-  // Quick-date chips
   const chips = document.getElementById("quick-dates");
   chips.innerHTML = "";
   upcoming.forEach(d => {
@@ -1220,46 +1112,29 @@ function renderSpreadsheetModal() {
     const isActive = d.str === state.selectedDate;
     btn.type = "button";
     btn.dataset.date = d.str;
-    btn.className = "quick-date-chip px-2 py-2.5 rounded-lg text-xs font-medium border transition-colors " +
+    btn.className = "px-2 py-2.5 rounded-lg text-xs font-medium border-2 transition-colors " +
       (isActive
-        ? "bg-emerald-600 border-emerald-600 text-white"
-        : "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-slate-400");
-    btn.innerHTML = `<div class="text-[10px] opacity-70">${d.label.split(" ")[0]}</div><div class="text-sm font-semibold">${d.label.split(" ").slice(1).join(" ")}</div>`;
-    btn.addEventListener("click", () => {
-      state.selectedDate = d.str;
-      document.getElementById("custom-date").value = d.str;
-      renderSpreadsheetModal();
-    });
+        ? "bg-emerald-600 border-emerald-600 text-white shadow-sm"
+        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200");
+    btn.innerHTML = `<div class="text-[10px] opacity-70 capitalize">${d.label.split(" ")[0]}</div><div class="text-sm font-semibold">${d.label.split(" ").slice(1).join(" ")}</div>`;
+    btn.addEventListener("click", () => selectDate(d.str));
     chips.appendChild(btn);
   });
 
-  // Date input
   const dateInput = document.getElementById("custom-date");
   dateInput.value = state.selectedDate;
-  dateInput.min = todayStr();
-
-  // Save button + hint
-  const sel = strToDate(state.selectedDate);
-  const filledNow = countFilled(state.voorraad);
-  document.getElementById("save-delivery-label").textContent =
-    state.pushing ? "Bezig met opslaan…" : `Opslaan voor ${formatDateNL(sel)}`;
-  const saveBtn = document.getElementById("save-delivery-btn");
-  saveBtn.disabled = state.pushing || !configured || filledNow === 0;
-  document.getElementById("save-hint").textContent =
-    !configured ? "Verbind eerst met Google Sheets via de setup hierboven."
-    : filledNow === 0 ? "Nog geen voorraad ingevuld."
-    : `${filledNow} ${filledNow === 1 ? "product" : "producten"} ingevuld op dit moment.`;
-
-  // Open Sheet link
-  const openLink = document.getElementById("gs-open-link");
-  if (state.gsSheetUrl) {
-    openLink.href = state.gsSheetUrl;
-    openLink.style.display = "inline-flex";
-    openLink.classList.remove("hidden");
-  } else {
-    openLink.style.display = "none";
-  }
+  dateInput.min = todayKey;
 }
+
+function selectDate(dateStr) {
+  state.selectedDate = dateStr;
+  localStorage.setItem(LS_KEYS.selectedDate, dateStr);
+  renderDatePicker();
+  updateGlobal();
+  // Bij datum-wissel: re-sync naar (nieuwe) sheet-blad
+  scheduleSync();
+}
+
 
 /* ---------- ZOOM PREVENTION (mobile) ---------- */
 function preventZoomGestures() {
@@ -1302,70 +1177,17 @@ function init() {
   // Theme toggle
   document.getElementById("dark-toggle").addEventListener("click", toggleTheme);
 
-  // Bottom bar
-  document.getElementById("show-order-btn").addEventListener("click", () => {
-    renderOrderModal();
-    openModal("order-modal");
-  });
-  document.getElementById("close-modal-btn").addEventListener("click", () => closeModal("order-modal"));
-  document.getElementById("order-modal").addEventListener("click", e => {
-    if (e.target.id === "order-modal") closeModal("order-modal");
+  // Submit-knop
+  document.getElementById("submit-btn").addEventListener("click", submitOrder);
+  document.getElementById("new-order-btn").addEventListener("click", () => {
+    state.submitted = false;
+    document.getElementById("submitted-screen").classList.add("hidden");
   });
 
-  document.getElementById("copy-tsv-btn").addEventListener("click", () => copyToClipboard(orderAsTSV(), "TSV"));
-  document.getElementById("copy-csv-btn").addEventListener("click", () => copyToClipboard(orderAsCSV(), "CSV"));
-
-  // Spreadsheet modal
-  document.getElementById("open-spreadsheet-btn").addEventListener("click", () => {
-    state.selectedDate = null;
-    renderSpreadsheetModal();
-    openModal("spreadsheet-modal");
-  });
-  document.getElementById("close-spreadsheet-btn").addEventListener("click", () => closeModal("spreadsheet-modal"));
-  document.getElementById("spreadsheet-modal").addEventListener("click", e => {
-    if (e.target.id === "spreadsheet-modal") closeModal("spreadsheet-modal");
-  });
+  // Leverdag picker
+  renderDatePicker();
   document.getElementById("custom-date").addEventListener("change", e => {
-    if (e.target.value) {
-      state.selectedDate = e.target.value;
-      renderSpreadsheetModal();
-    }
-  });
-  document.getElementById("save-delivery-btn").addEventListener("click", () => {
-    if (!state.selectedDate) return;
-    pushToGoogleSheets(state.selectedDate);
-  });
-
-  // Apps Script URL configuratie
-  document.getElementById("gs-save-url-btn").addEventListener("click", () => {
-    const raw = document.getElementById("gs-url-input").value.trim();
-    if (!raw) { showSsToast("Plak eerst de Apps Script URL", true); return; }
-    if (!/^https:\/\/script\.google\.com\/.+\/exec(\?.*)?$/.test(raw)) {
-      if (!confirm("URL ziet er niet standaard uit (verwacht eindigt op /exec). Toch opslaan?")) return;
-    }
-    state.gsUrl = raw;
-    localStorage.setItem(LS_KEYS.gsUrl, raw);
-    showSsToast("Verbonden met Google Sheets");
-    renderSpreadsheetModal();
-  });
-  document.getElementById("gs-edit-url-btn").addEventListener("click", () => {
-    state.gsUrl = "";
-    localStorage.removeItem(LS_KEYS.gsUrl);
-    renderSpreadsheetModal();
-    setTimeout(() => document.getElementById("gs-url-input").focus(), 50);
-  });
-  document.getElementById("gs-show-instructions-btn").addEventListener("click", () => {
-    const det = document.getElementById("gs-instructions");
-    det.open = true;
-    det.scrollIntoView({ behavior: "smooth", block: "start" });
-  });
-  document.getElementById("gs-copy-script-btn").addEventListener("click", async () => {
-    try {
-      await navigator.clipboard.writeText(APPS_SCRIPT_CODE);
-      showSsToast("Apps Script gekopieerd — plak in Apps Script editor");
-    } catch {
-      showSsToast("Kopiëren mislukt — selecteer handmatig", true);
-    }
+    if (e.target.value) selectDate(e.target.value);
   });
 
   // Menu
@@ -1420,13 +1242,9 @@ function init() {
     e.target.value = "";
   });
 
-  // Esc closes modals
+  // Esc sluit menu
   document.addEventListener("keydown", e => {
-    if (e.key === "Escape") {
-      closeModal("order-modal");
-      closeModal("spreadsheet-modal");
-      closeMenu();
-    }
+    if (e.key === "Escape") closeMenu();
   });
 }
 
