@@ -779,7 +779,6 @@ function updateGlobal() {
     `${filled} / ${total} ingevuld`;
   document.getElementById("order-summary-detail").textContent =
     `${toOrderCount} ${toOrderCount === 1 ? "product" : "producten"} te bestellen · ${toOrderUnits} ${toOrderUnits === 1 ? "verpakking" : "verpakkingen"}`;
-  document.getElementById("show-order-btn").disabled = toOrderCount === 0;
 
   // chip counts
   document.querySelectorAll("#chip-nav .chip").forEach(chip => {
@@ -866,17 +865,20 @@ async function copyToClipboard(text, label) {
   }
 }
 function showToast(msg, isError) {
-  const el = document.getElementById("copy-toast");
+  // Vluchtige toast onderaan via dynamisch element (copy-toast bestaat niet meer)
+  let el = document.getElementById("global-toast");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "global-toast";
+    el.className = "fixed left-1/2 -translate-x-1/2 bottom-24 z-50 px-4 py-2 text-xs rounded-md shadow-lg hidden";
+    document.body.appendChild(el);
+  }
   el.textContent = msg;
-  el.classList.toggle("bg-emerald-100", !isError);
-  el.classList.toggle("dark:bg-emerald-900/40", !isError);
-  el.classList.toggle("text-emerald-800", !isError);
-  el.classList.toggle("dark:text-emerald-200", !isError);
-  el.classList.toggle("bg-rose-100", !!isError);
-  el.classList.toggle("dark:bg-rose-900/40", !!isError);
-  el.classList.toggle("text-rose-800", !!isError);
-  el.classList.toggle("dark:text-rose-200", !!isError);
-  el.classList.remove("hidden");
+  el.className = `fixed left-1/2 -translate-x-1/2 bottom-24 z-50 px-4 py-2 text-xs rounded-md shadow-lg ${
+    isError
+      ? "bg-rose-600 text-white"
+      : "bg-emerald-600 text-white"
+  }`;
   clearTimeout(showToast._t);
   showToast._t = setTimeout(() => el.classList.add("hidden"), 2400);
 }
